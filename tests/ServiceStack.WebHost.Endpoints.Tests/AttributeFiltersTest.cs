@@ -18,6 +18,8 @@ namespace ServiceStack.WebHost.Endpoints.Tests
 	//Always executed
 	public class FilterTestAttribute : Attribute, IHasRequestFilter
 	{
+        private static ICacheClient previousCache;
+
 		public ICacheClient Cache { get; set; }
 
 		public int Priority { get; set; }
@@ -26,7 +28,9 @@ namespace ServiceStack.WebHost.Endpoints.Tests
 		{
 			var dto = requestDto as AttributeFiltered;
 			dto.RequestFilterExecuted = true;
-			dto.RequestFilterDependenyIsResolved = Cache != null;
+			dto.RequestFilterDependenyIsResolved = Cache != null && !Cache.Equals(previousCache);
+
+            previousCache = Cache;
 		}
 	}
 
@@ -129,7 +133,7 @@ namespace ServiceStack.WebHost.Endpoints.Tests
 
 			public override void Configure(Funq.Container container)
 			{
-				container.Register<ICacheClient>(new MemoryCacheClient());
+				container.Register<ICacheClient>(c => new MemoryCacheClient()).ReusedWithin(Funq.ReuseScope.None);
 			}
 		}
 
