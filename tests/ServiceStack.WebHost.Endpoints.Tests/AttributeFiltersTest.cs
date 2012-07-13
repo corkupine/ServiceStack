@@ -28,6 +28,8 @@ namespace ServiceStack.WebHost.Endpoints.Tests
 		{
 			var dto = requestDto as AttributeFiltered;
 			dto.RequestFilterExecuted = true;
+
+            //Check for equality to previous cache to ensure a filter attribute is no singleton
 			dto.RequestFilterDependenyIsResolved = Cache != null && !Cache.Equals(previousCache);
 
             previousCache = Cache;
@@ -62,6 +64,8 @@ namespace ServiceStack.WebHost.Endpoints.Tests
 	//Always executed
 	public class ResponseFilterTestAttribute : Attribute, IHasResponseFilter
 	{
+        private static ICacheClient previousCache;
+
 		public ICacheClient Cache { get; set; }
 
 		public int Priority { get; set; }
@@ -70,7 +74,9 @@ namespace ServiceStack.WebHost.Endpoints.Tests
 		{
 			var dto = response.ToResponseDto() as AttributeFilteredResponse;
 			dto.ResponseFilterExecuted = true;
-			dto.ResponseFilterDependencyIsResolved = Cache != null;
+			dto.ResponseFilterDependencyIsResolved = Cache != null && !Cache.Equals(previousCache);
+
+            previousCache = Cache;
 		}
 	}
 
@@ -233,7 +239,7 @@ namespace ServiceStack.WebHost.Endpoints.Tests
 			EndpointHost.ServiceManager.ServiceController.RequestServiceTypeMap[typeof(DummyHolder)]
 				= typeof(AttributeFilteredService);
 
-			var attributes = FilterAttributeCache.GetRequestFilterAttributes(typeof(DummyHolder));
+			var attributes = EndpointHost.GetRequestFilterAttributesForType(typeof(DummyHolder));
 			var attrPriorities = attributes.ToList().ConvertAll(x => x.Priority);
 			Assert.That(attrPriorities, Is.EquivalentTo(new[] { -100, -90, -80, 0 }));
 

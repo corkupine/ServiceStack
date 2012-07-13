@@ -72,7 +72,7 @@ namespace ServiceStack.WebHost.Endpoints.Support
 							? new HttpResponseWrapper(HttpContext.Current.Response)
 							: null;
 				var hasRequestFilters = EndpointHost.RequestFilters.Count > 0 
-                    || FilterAttributeCache.GetRequestFilterAttributes(request.GetType()).Any();
+                    || EndpointHost.GetRequestFilterAttributesForType(request.GetType()).Any();
 
 				if (hasRequestFilters && EndpointHost.ApplyRequestFilters(httpReq, httpRes, request)) 
                     return EmptyResponse(requestMsg, requestType);
@@ -80,7 +80,7 @@ namespace ServiceStack.WebHost.Endpoints.Support
 				var response = ExecuteService(request, endpointAttributes, httpReq, httpRes);
 
 				var hasResponseFilters = EndpointHost.ResponseFilters.Count > 0
-				   || FilterAttributeCache.GetResponseFilterAttributes(response.GetType()).Any();
+				   || EndpointHost.GetResponseFilterAttributesForType(response.GetType()).Any();
 				
 				if (hasResponseFilters && httpRes == null)
 				{

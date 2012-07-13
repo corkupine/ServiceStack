@@ -191,7 +191,7 @@ namespace ServiceStack.WebHost.Endpoints
 			using (Profiler.Current.Step("Executing Request Filters"))
 			{
 				//Exec all RequestFilter attributes with Priority < 0
-				var attributes = FilterAttributeCache.GetRequestFilterAttributes(requestDto.GetType());
+                var attributes = GetRequestFilterAttributesForType(requestDto.GetType());
 				var i = 0;
 				for (; i < attributes.Length && attributes[i].Priority < 0; i++)
 				{
@@ -225,6 +225,19 @@ namespace ServiceStack.WebHost.Endpoints
 			}
 		}
 
+        public static IHasRequestFilter[] GetRequestFilterAttributesForType(Type requestDtoType)
+        {
+            var attributes = new List<IHasRequestFilter>(
+                (IHasRequestFilter[])requestDtoType.GetCustomAttributes(typeof(IHasRequestFilter), true));
+
+            var serviceType = EndpointHost.ServiceManager.ServiceController.RequestServiceTypeMap[requestDtoType];
+            attributes.AddRange(
+                (IHasRequestFilter[])serviceType.GetCustomAttributes(typeof(IHasRequestFilter), true));
+
+            attributes.Sort((x, y) => x.Priority - y.Priority);
+            return attributes.ToArray();
+        }
+
 		/// <summary>
 		/// Applies the response filters. Returns whether or not the request has been handled 
 		/// and no more processing should be done.
@@ -239,7 +252,7 @@ namespace ServiceStack.WebHost.Endpoints
 			{
 				var responseDto = response.ToResponseDto();
 				var attributes = responseDto != null
-					? FilterAttributeCache.GetResponseFilterAttributes(responseDto.GetType())
+					? GetResponseFilterAttributesForType(responseDto.GetType())
 					: null;
 
 				//Exec all ResponseFilter attributes with Priority < 0
@@ -281,6 +294,23 @@ namespace ServiceStack.WebHost.Endpoints
 				return httpRes.IsClosed;
 			}
 		}
+
+        public static IHasResponseFilter[] GetResponseFilterAttributesForType(Type responseDtoType)
+        {
+            var attributes = new List<IHasResponseFilter>(
+                (IHasResponseFilter[])responseDtoType.GetCustomAttributes(typeof(IHasResponseFilter), true));
+
+            Type serviceType;
+            EndpointHost.ServiceManager.ServiceController.ResponseServiceTypeMap.TryGetValue(responseDtoType, out serviceType);
+            if (serviceType != null)
+            {
+                attributes.AddRange(
+                    (IHasResponseFilter[])serviceType.GetCustomAttributes(typeof(IHasResponseFilter), true));
+            }
+
+            attributes.Sort((x, y) => x.Priority - y.Priority);
+            return attributes.ToArray();
+        }
 
 		public static void SetOperationTypes(ServiceOperations operationTypes, ServiceOperations allOperationTypes)
 		{
